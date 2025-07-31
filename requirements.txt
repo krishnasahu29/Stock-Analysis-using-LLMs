@@ -1,0 +1,44 @@
+# LangGraph and LangChain
+langgraph
+langchain
+langchain-core
+langchain-openai
+langsmith
+
+# Financial Data
+yfinance
+alpha_vantage
+pandas_datareader
+
+# Technical Analysis
+pandas
+numpy
+scipy
+pandas-ta
+
+# Sentiment Analysis
+textblob
+vaderSentiment
+newsapi-python
+newsdataapi
+
+# Web Framework
+fastapi
+uvicorn
+streamlit
+plotly
+streamlit-plotly-events
+
+# Data Processing
+requests    
+beautifulsoup4
+python-dotenv
+pydantic
+
+# Risk Management
+scipy
+scikit-learn
+
+# Utilities
+python-json-logger
+tenacity
