@@ -22,6 +22,11 @@ class AnalysisRequest(BaseModel):
     analysis_period: int = 30  # days
 
 
+@app.get("/")
+def read_root():
+    return {"message": "Welcome to the LangGraph Stock Analysis API"}
+
+
 @app.post("/analyze")
 async def analyze_stock(request: AnalysisRequest):
     try:
