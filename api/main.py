@@ -15,6 +15,7 @@ load_dotenv()
 app = FastAPI(title="LangGraph Stock Analysis API")
 
 graph = build_trading_graph()
+compiled_graph = graph.compile()
 
 class AnalysisRequest(BaseModel):
     symbol: str
@@ -27,6 +28,11 @@ def read_root():
     return {"message": "Welcome to the LangGraph Stock Analysis API"}
 
 
+import logging
+import traceback
+
+logger = logging.getLogger(__name__)
+
 @app.post("/analyze")
 async def analyze_stock(request: AnalysisRequest):
     try:
@@ -35,9 +41,11 @@ async def analyze_stock(request: AnalysisRequest):
             'timeframe': request.timeframe,
             'analysis_period': request.analysis_period
         }
-        result = graph.invoke(state)
+        result = compiled_graph.stream(state)
         return result
     except Exception as e:
+        logger.error(f"An error occurred during analysis: {e}")
+        logger.error(traceback.format_exc())
         raise HTTPException(status_code=500, detail=str(e))
 
 # Entry point for local run
