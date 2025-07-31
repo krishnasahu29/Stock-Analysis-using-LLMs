@@ -25,16 +25,13 @@ def build_trading_graph() -> StateGraph:
     graph.add_node("risk_analysis", risk_management_agent.analyze)
     graph.add_node("portfolio_decision", portfolio_management_agent.decide)
 
-    # Initial step: run technical and sentiment in parallel
-    graph.add_parallel_edges([
-        ("technical_analysis", "risk_analysis"),
-        ("sentiment_analysis", "risk_analysis")
-    ])
+    # Set the entry point
+    graph.set_entry_point(["technical_analysis", "sentiment_analysis"])
 
-    # After risk analysis, go to portfolio decision
+    # Define the edges
+    graph.add_edge("technical_analysis", "risk_analysis")
+    graph.add_edge("sentiment_analysis", "risk_analysis")
     graph.add_edge("risk_analysis", "portfolio_decision")
-
-    # End
     graph.add_edge("portfolio_decision", END)
 
     return graph
