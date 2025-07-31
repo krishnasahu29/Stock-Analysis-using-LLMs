@@ -7,10 +7,26 @@ from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 from typing import Dict, Any
 from dotenv import load_dotenv
+import json
+import numpy as np
+from fastapi.responses import JSONResponse
 
-from ..trading_graph import build_trading_graph
+import sys
+import os
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from trading_graph import build_trading_graph
 
 load_dotenv()
+
+class NumpyEncoder(json.JSONEncoder):
+    def default(self, obj):
+        if isinstance(obj, np.integer):
+            return int(obj)
+        elif isinstance(obj, np.floating):
+            return float(obj)
+        elif isinstance(obj, np.ndarray):
+            return obj.tolist()
+        return super(NumpyEncoder, self).default(obj)
 
 app = FastAPI(title="LangGraph Stock Analysis API")
 
@@ -34,20 +50,7 @@ import numpy as np
 
 logger = logging.getLogger(__name__)
 
-def convert_numpy_types(obj):
-    if isinstance(obj, np.integer):
-        return int(obj)
-    elif isinstance(obj, np.floating):
-        return float(obj)
-    elif isinstance(obj, np.ndarray):
-        return obj.tolist()
-    elif isinstance(obj, dict):
-        return {k: convert_numpy_types(v) for k, v in obj.items()}
-    elif isinstance(obj, list):
-        return [convert_numpy_types(i) for i in obj]
-    return obj
-
-@app.post("/analyze")
+@app.post("/analyze", response_class=JSONResponse)
 async def analyze_stock(request: AnalysisRequest):
     try:
         state = {
@@ -56,7 +59,7 @@ async def analyze_stock(request: AnalysisRequest):
             'analysis_period': request.analysis_period
         }
         result = compiled_graph.stream(state)
-        return convert_numpy_types(result)
+        return json.loads(json.dumps(result, cls=NumpyEncoder))
     except Exception as e:
         logger.error(f"An error occurred during analysis: {e}")
         logger.error(traceback.format_exc())
