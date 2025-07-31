@@ -23,7 +23,7 @@ class DataFetcher:
         self.news_api_key = os.getenv('NEWS_API_KEY')
         self.alpha_vantage_key = os.getenv('ALPHA_VANTAGE_API_KEY')
         if self.news_api_key:
-            self.news_client = NewsDataApiClient(api_key=self.news_api_key)
+            self.news_client = NewsDataApiClient(apikey=self.news_api_key)
 
     def fetch_stock_data(self, symbol: str, period: str = "30d", interval: str = "1h") -> Optional[pd.DataFrame]:
         """
@@ -98,21 +98,19 @@ class DataFetcher:
                 ticker = yf.Ticker(symbol)
                 company_name = ticker.info.get('longName', symbol)
 
-                articles = self.news_client.get_everything(
+                response = self.news_client.news_api(
                     q=f"{symbol} OR {company_name}",
-                    from_param=from_date,
-                    language='en',
-                    sort_by='relevancy',
-                    page_size=50
+                    from_date=from_date,
+                    language='en'
                 )
 
-                for article in articles.get('articles', []):
+                for article in response.get('results', []):
                     news_list.append({
-                        'title': article['title'],
-                        'description': article['description'],
-                        'url': article['url'],
-                        'published_at': article['publishedAt'],
-                        'source': article['source']['name'],
+                        'title': article.get('title'),
+                        'description': article.get('description'),
+                        'url': article.get('link'),
+                        'published_at': article.get('pubDate'),
+                        'source': article.get('source_id'),
                         'content': article.get('content', '')
                     })
 
