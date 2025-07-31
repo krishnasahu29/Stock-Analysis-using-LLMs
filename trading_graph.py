@@ -20,7 +20,12 @@ def entry_point(state: TradingState) -> Dict[str, Any]:
     This is the entry point for the trading graph.
     It returns the initial state.
     """
-    return {"messages": []}
+    return {
+        "symbol": state["symbol"],
+        "timeframe": state["timeframe"],
+        "analysis_period": state["analysis_period"],
+        "messages": [],
+    }
 
 
 def should_continue(state: TradingState) -> str:

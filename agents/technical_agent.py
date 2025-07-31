@@ -41,7 +41,7 @@ class TechnicalAnalysisAgent:
             ("human", "Analyze the following technical data for {symbol}:\n\n{technical_data}")
         ])
 
-    def analyze(self, state: TradingState) -> TradingState:
+    def analyze(self, state: TradingState) -> Dict[str, Any]:
         """Perform technical analysis and update state"""
         try:
             symbol = state["symbol"]
@@ -58,44 +58,37 @@ class TechnicalAnalysisAgent:
             )
 
             if price_data is None or price_data.empty:
-                state["errors"] = state.get("errors", []) + [f"No price data available for {symbol}"]
-                return state
-
-            # Store price data in state
-            state["price_data"] = price_data
-            state["current_price"] = float(price_data['Close'].iloc[-1])
+                return {"errors": state.get("errors", []) + [f"No price data available for {symbol}"]}
 
             # Calculate technical indicators
             indicators = technical_indicators.calculate_all_indicators(price_data)
-            state["technical_indicators"] = indicators
 
             if not indicators:
-                state["errors"] = state.get("errors", []) + ["Failed to calculate technical indicators"]
-                return state
+                return {"errors": state.get("errors", []) + ["Failed to calculate technical indicators"]}
 
             # Generate trading signals using LLM
             technical_analysis = self._generate_llm_analysis(symbol, indicators, price_data)
 
-            # Extract signal strength and key levels
-            state["technical_signals"] = {
-                'signal_strength': technical_analysis.get('signal_strength', 0.0),
-                'trend_direction': technical_analysis.get('trend_direction', 'NEUTRAL'),
-                'momentum': technical_analysis.get('momentum', 'NEUTRAL')
+            price_data.index = price_data.index.strftime('%Y-%m-%d %H:%M:%S')
+            return {
+                "price_data": price_data,
+                "current_price": float(price_data['Close'].iloc[-1]),
+                "technical_indicators": indicators,
+                "technical_signals": {
+                    'signal_strength': technical_analysis.get('signal_strength', 0.0),
+                    'trend_direction': technical_analysis.get('trend_direction', 'NEUTRAL'),
+                    'momentum': technical_analysis.get('momentum', 'NEUTRAL')
+                },
+                "support_resistance": {
+                    'support': indicators.get('levels', {}).get('support', []),
+                    'resistance': indicators.get('levels', {}).get('resistance', [])
+                }
             }
-
-            state["support_resistance"] = {
-                'support': indicators.get('levels', {}).get('support', []),
-                'resistance': indicators.get('levels', {}).get('resistance', [])
-            }
-
-            logger.info(f"Technical analysis completed for {symbol}")
-            return state
 
         except Exception as e:
             error_msg = f"Technical analysis error: {str(e)}"
             logger.error(error_msg)
-            state["errors"] = state.get("errors", []) + [error_msg]
-            return state
+            return {"errors": state.get("errors", []) + [error_msg]}
 
     def _generate_llm_analysis(self, symbol: str, indicators: Dict[str, Any], price_data) -> Dict[str, Any]:
         """Use LLM to interpret technical indicators"""

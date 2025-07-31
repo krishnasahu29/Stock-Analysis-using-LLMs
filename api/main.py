@@ -30,6 +30,8 @@ class NumpyEncoder(json.JSONEncoder):
             return obj.tolist()
         elif isinstance(obj, pd.Timestamp):
             return obj.isoformat()
+        elif isinstance(obj, pd.DataFrame):
+            return obj.to_dict(orient='records')
         return super(NumpyEncoder, self).default(obj)
 
 app = FastAPI(title="LangGraph Stock Analysis API")
@@ -63,7 +65,8 @@ async def analyze_stock(request: AnalysisRequest):
             'analysis_period': request.analysis_period
         }
         result = list(compiled_graph.stream(state))
-        return json.loads(json.dumps(result, cls=NumpyEncoder))
+        final_state = result[-1]
+        return json.loads(json.dumps(final_state, cls=NumpyEncoder))
     except Exception as e:
         logger.error(f"An error occurred during analysis: {e}")
         logger.error(traceback.format_exc())

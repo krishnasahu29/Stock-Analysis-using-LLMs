@@ -40,7 +40,7 @@ class SentimentAnalysisAgent:
             ("human", "Analyze the sentiment for {symbol} based on the following data:\n\n{sentiment_data}")
         ])
 
-    def analyze(self, state: TradingState) -> TradingState:
+    def analyze(self, state: TradingState) -> Dict[str, Any]:
         """Perform sentiment analysis and update state"""
         try:
             symbol = state["symbol"]
@@ -52,38 +52,32 @@ class SentimentAnalysisAgent:
 
             if not news_articles:
                 logger.warning(f"No news articles found for {symbol}")
-                state["news_sentiment"] = 0.0
-                state["social_sentiment"] = 0.0
-                state["sentiment_sources"] = []
-                return state
+                return {
+                    "news_sentiment": 0.0,
+                    "social_sentiment": 0.0,
+                    "sentiment_sources": [],
+                }
 
             # Analyze sentiment using sentiment analyzer
             sentiment_results = sentiment_analyzer.analyze_news_articles(news_articles, symbol)
 
-            # Store results in state
-            state["news_sentiment"] = sentiment_results.get('overall_sentiment', 0.0)
-            state["sentiment_sources"] = sentiment_results.get('articles_analysis', [])
-
             # Generate enhanced sentiment analysis using LLM
             llm_analysis = self._generate_llm_sentiment_analysis(
-                symbol, 
-                sentiment_results, 
+                symbol,
+                sentiment_results,
                 news_articles[:10]  # Top 10 articles
             )
 
-            # Store enhanced analysis
-            state["social_sentiment"] = llm_analysis.get('enhanced_sentiment', 0.0)
-
-            logger.info(f"Sentiment analysis completed for {symbol}")
-            return state
+            return {
+                "news_sentiment": sentiment_results.get('overall_sentiment', 0.0),
+                "sentiment_sources": sentiment_results.get('articles_analysis', []),
+                "social_sentiment": llm_analysis.get('enhanced_sentiment', 0.0),
+            }
 
         except Exception as e:
             error_msg = f"Sentiment analysis error: {str(e)}"
             logger.error(error_msg)
-            state["errors"] = state.get("errors", []) + [error_msg]
-            state["news_sentiment"] = 0.0
-            state["social_sentiment"] = 0.0
-            return state
+            return {"errors": state.get("errors", []) + [error_msg]}
 
     def _generate_llm_sentiment_analysis(self, symbol: str, sentiment_results: Dict[str, Any], 
                                        top_articles: list) -> Dict[str, Any]:
