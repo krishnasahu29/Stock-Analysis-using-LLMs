@@ -4,13 +4,14 @@ State management for the LangGraph trading system
 from typing import Dict, List, Optional, Any, TypedDict
 from datetime import datetime
 import pandas as pd
+from typing_extensions import Annotated
 
 
 class TradingState(TypedDict):
     """State object for the trading analysis workflow"""
 
     # Input parameters
-    symbol: str
+    symbol: Annotated[str, "The stock symbol to analyze"]
     timeframe: str  # e.g., '1m', '5m', '15m', '30m', '1h'
     analysis_period: int  # days of historical data
 

@@ -18,6 +18,8 @@ from trading_graph import build_trading_graph
 
 load_dotenv()
 
+import pandas as pd
+
 class NumpyEncoder(json.JSONEncoder):
     def default(self, obj):
         if isinstance(obj, np.integer):
@@ -26,6 +28,8 @@ class NumpyEncoder(json.JSONEncoder):
             return float(obj)
         elif isinstance(obj, np.ndarray):
             return obj.tolist()
+        elif isinstance(obj, pd.Timestamp):
+            return obj.isoformat()
         return super(NumpyEncoder, self).default(obj)
 
 app = FastAPI(title="LangGraph Stock Analysis API")
@@ -58,7 +62,7 @@ async def analyze_stock(request: AnalysisRequest):
             'timeframe': request.timeframe,
             'analysis_period': request.analysis_period
         }
-        result = compiled_graph.stream(state)
+        result = list(compiled_graph.stream(state))
         return json.loads(json.dumps(result, cls=NumpyEncoder))
     except Exception as e:
         logger.error(f"An error occurred during analysis: {e}")
