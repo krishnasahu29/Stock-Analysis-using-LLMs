@@ -30,8 +30,22 @@ def read_root():
 
 import logging
 import traceback
+import numpy as np
 
 logger = logging.getLogger(__name__)
+
+def convert_numpy_types(obj):
+    if isinstance(obj, np.integer):
+        return int(obj)
+    elif isinstance(obj, np.floating):
+        return float(obj)
+    elif isinstance(obj, np.ndarray):
+        return obj.tolist()
+    elif isinstance(obj, dict):
+        return {k: convert_numpy_types(v) for k, v in obj.items()}
+    elif isinstance(obj, list):
+        return [convert_numpy_types(i) for i in obj]
+    return obj
 
 @app.post("/analyze")
 async def analyze_stock(request: AnalysisRequest):
@@ -42,7 +56,7 @@ async def analyze_stock(request: AnalysisRequest):
             'analysis_period': request.analysis_period
         }
         result = compiled_graph.stream(state)
-        return result
+        return convert_numpy_types(result)
     except Exception as e:
         logger.error(f"An error occurred during analysis: {e}")
         logger.error(traceback.format_exc())
