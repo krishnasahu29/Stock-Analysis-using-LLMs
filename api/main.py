@@ -10,6 +10,7 @@ from dotenv import load_dotenv
 import json
 import numpy as np
 from fastapi.responses import JSONResponse
+from fastapi.middleware.cors import CORSMiddleware
 
 import sys
 import os
@@ -36,6 +37,14 @@ class NumpyEncoder(json.JSONEncoder):
 
 app = FastAPI(title="LangGraph Stock Analysis API")
 
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 graph = build_trading_graph()
 compiled_graph = graph.compile()
 
@@ -56,6 +65,25 @@ import numpy as np
 
 logger = logging.getLogger(__name__)
 
+def sanitize_for_tracer(obj):
+    """
+    Recursively convert pandas Timestamp keys/values to strings.
+    """
+    if isinstance(obj, dict):
+        safe_dict = {}
+        for k, v in obj.items():
+            # Convert keys if they are Timestamp
+            safe_key = k.isoformat() if isinstance(k, pd.Timestamp) else k
+            # Recurse on the value
+            safe_dict[safe_key] = sanitize_for_tracer(v)
+        return safe_dict
+    elif isinstance(obj, list):
+        return [sanitize_for_tracer(v) for v in obj]
+    elif isinstance(obj, pd.Timestamp):
+        return obj.isoformat()
+    else:
+        return obj
+
 @app.post("/analyze", response_class=JSONResponse)
 async def analyze_stock(request: AnalysisRequest):
     try:
@@ -64,8 +92,10 @@ async def analyze_stock(request: AnalysisRequest):
             'timeframe': request.timeframe,
             'analysis_period': request.analysis_period
         }
-        result = list(compiled_graph.stream(state))
+        safe_state = sanitize_for_tracer(state)
+        result = list(compiled_graph.stream(safe_state))
         final_state = result[-1]
+        print(final_state)
         return json.loads(json.dumps(final_state, cls=NumpyEncoder))
     except Exception as e:
         logger.error(f"An error occurred during analysis: {e}")
